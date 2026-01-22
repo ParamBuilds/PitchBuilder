@@ -1,27 +1,30 @@
 import React, { useEffect } from 'react';
-// @ts-ignore - lucide is globally available from script
-const { createIcons, ...icons } = lucide;
 
-interface LucideIconProps extends React.HTMLAttributes<HTMLDivElement> {
-  // FIX: Explicitly type `name` as `string`. The inferred `keyof typeof icons` was too broad (`string | number | symbol`)
-  // because the global `lucide` object is untyped, causing errors on string operations and in template literals.
+// This component relies on the global `lucide` object from the script tag in index.html
+// Using `any` to avoid TypeScript errors for the global object.
+const lucide = (window as any).lucide;
+
+interface LucideIconProps extends React.HTMLAttributes<HTMLElement> {
   name: string;
 }
 
 export const LucideIcon: React.FC<LucideIconProps> = ({ name, ...props }) => {
-    const Icon = icons[name];
-    
+    // This effect runs after the component mounts and calls lucide's function
+    // to replace the `<i>` tag with an SVG icon.
     useEffect(() => {
-        createIcons();
-    }, []);
+        if (lucide && typeof lucide.createIcons === 'function') {
+            lucide.createIcons();
+        }
+    }, []); // Run once on mount
 
-    if (!Icon) {
-        console.error(`Icon "${name}" not found`);
-        return null;
+    // We can add a check for developer experience, but it's not essential for functionality.
+    if (lucide && lucide.icons && !lucide.icons[name]) {
+        console.warn(`Lucide icon "${name}" not found.`);
     }
 
-    // Using dangerouslySetInnerHTML because lucide's createIcons works by replacing `<i>` tags
     return (
+        // The `data-lucide` attribute is what the `createIcons` function looks for.
+        // Lucide's script will find this element and replace it with SVG.
         <i data-lucide={name.toLowerCase()} {...props}></i>
     );
 };
